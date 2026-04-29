@@ -1,7 +1,4 @@
 {
   "name": "Allsvenskan",
-  "description": "Home Assistant integration that displays live Allsvenskan standings with team logos, points, goals and league zone indicators.",
-  "render_readme": true,
-  "homeassistant": "2023.1.0",
-  "content_in_root": false
+  "render_readme": true
 }
