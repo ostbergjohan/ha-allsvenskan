@@ -1,0 +1,13 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Allsvenskan",
+        "description": "Klicka på Skicka för att lägga till Allsvenskan. Ingen API-nyckel krävs."
+      }
+    },
+    "abort": {
+      "already_configured": "Allsvenskan är redan konfigurerat."
+    }
+  }
+}
