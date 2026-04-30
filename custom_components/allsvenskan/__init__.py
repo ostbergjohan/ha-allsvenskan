@@ -21,37 +21,14 @@ _CARD_URL = f"/{DOMAIN}/allsvenskan-card.js"
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     """Register static path for the Lovelace card."""
     www_path = pathlib.Path(__file__).parent / "www" / "allsvenskan-card.js"
-
-    # Serve the JS file
     hass.http.register_static_path(_CARD_URL, str(www_path), cache_headers=False)
-
-    # Auto-register as Lovelace resource (only once)
-    await _async_register_lovelace_resource(hass, _CARD_URL)
-
+    _LOGGER.info(
+        "Allsvenskan card available at %s. "
+        "Add it manually in Settings → Dashboards → Resources if needed.",
+        _CARD_URL,
+    )
     return True
 
-
-async def _async_register_lovelace_resource(hass: HomeAssistant, url: str) -> None:
-    """Add the card JS as a Lovelace resource if not already present."""
-    try:
-        lovelace_data = hass.data.get("lovelace")
-        if lovelace_data is None:
-            return
-        resources = lovelace_data.get("resources")
-        if resources is None:
-            return
-        await resources.async_load(True)
-        existing_urls = [r["url"] for r in resources.async_items()]
-        if url not in existing_urls:
-            await resources.async_create_item({"res_type": "module", "url": url})
-            _LOGGER.info("Allsvenskan card registered as Lovelace resource: %s", url)
-    except Exception as err:  # noqa: BLE001
-        _LOGGER.warning(
-            "Could not auto-register Lovelace resource %s: %s. "
-            "Add it manually in Settings → Dashboards → Resources.",
-            url,
-            err,
-        )
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
