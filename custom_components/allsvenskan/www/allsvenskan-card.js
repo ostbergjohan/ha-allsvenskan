@@ -11,7 +11,8 @@ class AllsvenskanCard extends HTMLElement {
     }
     const standings = stateObj.attributes.standings || [];
     const season = stateObj.attributes.season || "";
-    this._render(standings, season);
+    const maxRows = this.config.max_rows ? parseInt(this.config.max_rows) : standings.length;
+    this._render(standings.slice(0, maxRows), season);
   }
 
   setConfig(config) {
@@ -19,7 +20,8 @@ class AllsvenskanCard extends HTMLElement {
   }
 
   getCardSize() {
-    return 10;
+    const rows = this.config && this.config.max_rows ? parseInt(this.config.max_rows) : 16;
+    return Math.ceil(rows / 2) + 2;
   }
 
   _build() {

@@ -35,7 +35,8 @@ Lägg till kortet på din dashboard via **Redigera dashboard → Lägg till kort
 
 ```yaml
 type: custom:allsvenskan-card
-entity: sensor.allsvenskan_tabell
+entity: sensor.allsvenskan_tabell  # optional, this is the default
+max_rows: 6                         # optional, default shows all 16 teams
 ```
 
 ### Zonmarkering
