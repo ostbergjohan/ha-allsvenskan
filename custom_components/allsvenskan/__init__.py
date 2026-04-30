@@ -23,23 +23,22 @@ _CARD_URL = f"/{DOMAIN}/allsvenskan-card.js"
 
 async def _ensure_lovelace_resource(hass: HomeAssistant, url: str) -> None:
     """Persist card in Lovelace resources storage (survives restarts)."""
-    store = Store(hass, 1, "lovelace_resources")
+    store = Store(hass, 1, "lovelace.resources")
     data = await store.async_load() or {"items": []}
     items = data.setdefault("items", [])
     if any(item.get("url") == url for item in items):
         _LOGGER.debug("Allsvenskan: Lovelace resource already registered")
         return
-    items.append({"id": uuid.uuid4().hex, "type": "module", "url": url})
+    items.append({"id": uuid.uuid4().hex, "res_type": "module", "url": url})
     await store.async_save(data)
     _LOGGER.info("Allsvenskan: registered Lovelace resource %s", url)
 
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
-    """Serve the Lovelace card JS and icon as static files."""
+    """Serve the Lovelace card JS as a static file."""
     base = pathlib.Path(__file__).parent
     paths = [
         StaticPathConfig(_CARD_URL, str(base / "www" / "allsvenskan-card.js"), False),
-        StaticPathConfig(f"/{DOMAIN}/icon.png", str(base / "brand" / "icon.png"), True),
     ]
     try:
         await hass.http.async_register_static_paths(paths)
