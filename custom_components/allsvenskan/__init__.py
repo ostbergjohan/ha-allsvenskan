@@ -21,15 +21,17 @@ _CARD_URL = f"/{DOMAIN}/allsvenskan-card.js"
 
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
-    """Serve the Lovelace card JS as a static file."""
-    www_path = pathlib.Path(__file__).parent / "www" / "allsvenskan-card.js"
+    """Serve the Lovelace card JS and icon as static files."""
+    base = pathlib.Path(__file__).parent
+    paths = [
+        StaticPathConfig(_CARD_URL, str(base / "www" / "allsvenskan-card.js"), False),
+        StaticPathConfig(f"/{DOMAIN}/icon.png", str(base / "icon.png"), True),
+    ]
     try:
-        await hass.http.async_register_static_paths(
-            [StaticPathConfig(_CARD_URL, str(www_path), False)]
-        )
-        _LOGGER.debug("Allsvenskan card static path registered at %s", _CARD_URL)
+        await hass.http.async_register_static_paths(paths)
+        _LOGGER.debug("Allsvenskan static paths registered")
     except Exception as err:  # noqa: BLE001
-        _LOGGER.warning("Could not register Allsvenskan card static path: %s", err)
+        _LOGGER.warning("Could not register Allsvenskan static paths: %s", err)
     return True
 
 
