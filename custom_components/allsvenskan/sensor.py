@@ -46,6 +46,11 @@ class AllsvenskanTableSensor(CoordinatorEntity, SensorEntity):
         self._entry = entry
 
     @property
+    def available(self) -> bool:
+        """Return True as long as we have any data (fresh or cached)."""
+        return self.coordinator.data is not None
+
+    @property
     def native_value(self) -> str | None:
         """Return the name of the current league leader."""
         if self.coordinator.data and self.coordinator.data.get("standings"):
@@ -80,6 +85,11 @@ class AllsvenskanTeamSensor(CoordinatorEntity, SensorEntity):
         self._attr_unique_id = f"{DOMAIN}_team_{safe_name}"
         self._attr_name = f"Allsvenskan {team_name}"
         self._team_name = team_name
+
+    @property
+    def available(self) -> bool:
+        """Return True as long as we have any data (fresh or cached)."""
+        return self.coordinator.data is not None
 
     def _get_team_row(self) -> dict | None:
         if not self.coordinator.data:
