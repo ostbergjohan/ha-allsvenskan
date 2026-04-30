@@ -124,5 +124,5 @@ class AllsvenskanTeamSensor(CoordinatorEntity, SensorEntity):
             "goals_for": row.get("goals_for"),
             "goals_against": row.get("goals_against"),
             "goal_difference": row.get("goal_difference"),
-            "crest": row.get("team_crest"),
+            "crest": row.get("team_logo"),
         }
