@@ -75,7 +75,7 @@ class AllsvenskanCoordinator(DataUpdateCoordinator):
                     raise UpdateFailed(f"Standings endpoint returned HTTP {resp.status}")
                 standings_data = await resp.json()
 
-        except (aiohttp.ClientError, UpdateFailed) as err:
+        except Exception as err:  # noqa: BLE001
             # Return cached data so sensors stay available
             cached = await self._store.async_load()
             if cached:

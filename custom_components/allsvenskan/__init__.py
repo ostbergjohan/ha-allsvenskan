@@ -25,7 +25,7 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     base = pathlib.Path(__file__).parent
     paths = [
         StaticPathConfig(_CARD_URL, str(base / "www" / "allsvenskan-card.js"), False),
-        StaticPathConfig(f"/{DOMAIN}/icon.png", str(base / "icon.png"), True),
+        StaticPathConfig(f"/{DOMAIN}/icon.png", str(base / "brand" / "icon.png"), True),
     ]
     try:
         await hass.http.async_register_static_paths(paths)
@@ -38,7 +38,12 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Allsvenskan from a config entry."""
     coordinator = AllsvenskanCoordinator(hass)
-    await coordinator.async_config_entry_first_refresh()
+    try:
+        await coordinator.async_config_entry_first_refresh()
+    except Exception:  # noqa: BLE001
+        # First fetch failed and no cache available yet – sensors will show
+        # unavailable until the next scheduled update succeeds.
+        _LOGGER.warning("Allsvenskan: initial fetch failed, will retry on schedule.")
 
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
 
