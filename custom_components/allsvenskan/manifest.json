@@ -1,7 +1,7 @@
 {
   "domain": "allsvenskan",
   "name": "Allsvenskan",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "documentation": "https://github.com/ostbergjohan/ha-allsvenskan",
   "issue_tracker": "https://github.com/ostbergjohan/ha-allsvenskan/issues",
   "requirements": [],
