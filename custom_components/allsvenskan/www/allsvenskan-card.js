@@ -116,26 +116,6 @@ class AllsvenskanCard extends HTMLElement {
       }
       td.gd.pos-val { color: #2e7d32; }
       td.gd.neg-val { color: #c62828; }
-      .legend {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-        padding: 8px 12px;
-        font-size: 0.72em;
-        color: #666;
-        border-top: 1px solid #eee;
-      }
-      .legend-item {
-        display: flex;
-        align-items: center;
-        gap: 4px;
-      }
-      .legend-dot {
-        width: 10px;
-        height: 10px;
-        border-radius: 2px;
-        flex-shrink: 0;
-      }
       .error { color: red; padding: 12px; }
     `;
 
@@ -201,12 +181,6 @@ class AllsvenskanCard extends HTMLElement {
         </thead>
         <tbody>${rows}</tbody>
       </table>
-      <div class="legend">
-        <div class="legend-item"><div class="legend-dot" style="background:#1565C0"></div> Champions League-kval</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#F57F17"></div> Europa-kval</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#E65100"></div> Kval. nedflyttning</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#B71C1C"></div> Nedflyttning</div>
-      </div>
     `;
   }
 }
