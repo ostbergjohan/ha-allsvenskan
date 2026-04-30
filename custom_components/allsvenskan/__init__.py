@@ -3,12 +3,13 @@ from __future__ import annotations
 
 import logging
 import pathlib
+import uuid
 
-from homeassistant.components.frontend import add_extra_js_url
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.storage import Store
 
 from .const import DOMAIN
 from .coordinator import AllsvenskanCoordinator
@@ -18,6 +19,19 @@ _LOGGER = logging.getLogger(__name__)
 PLATFORMS: list[Platform] = [Platform.SENSOR]
 
 _CARD_URL = f"/{DOMAIN}/allsvenskan-card.js"
+_LOVELACE_RESOURCES_KEY = "lovelace_resources"
+
+
+async def _ensure_lovelace_resource(hass: HomeAssistant, url: str) -> None:
+    """Add the card URL to Lovelace resources storage if not already present."""
+    store = Store(hass, 1, _LOVELACE_RESOURCES_KEY)
+    data = await store.async_load() or {"items": []}
+    items = data.setdefault("items", [])
+    if any(item.get("url") == url for item in items):
+        return
+    items.append({"id": uuid.uuid4().hex, "type": "module", "url": url})
+    await store.async_save(data)
+    _LOGGER.debug("Allsvenskan: added Lovelace resource %s", url)
 
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
@@ -41,20 +55,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     try:
         await coordinator.async_config_entry_first_refresh()
     except Exception:  # noqa: BLE001
-        # First fetch failed and no cache available yet – sensors will show
-        # unavailable until the next scheduled update succeeds.
         _LOGGER.warning("Allsvenskan: initial fetch failed, will retry on schedule.")
 
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
-    # Register card as extra module — frontend is guaranteed to be set up here
+    # Persist card in Lovelace resources so it survives restarts
     try:
-        add_extra_js_url(hass, _CARD_URL)
-        _LOGGER.debug("Allsvenskan card registered as extra module: %s", _CARD_URL)
+        await _ensure_lovelace_resource(hass, _CARD_URL)
     except Exception as err:  # noqa: BLE001
-        _LOGGER.warning("Could not register Allsvenskan card as extra module: %s", err)
+        _LOGGER.warning("Could not register Allsvenskan Lovelace resource: %s", err)
 
     return True
 
