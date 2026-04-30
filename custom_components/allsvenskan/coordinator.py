@@ -9,6 +9,7 @@ import aiohttp
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.storage import Store
 
 from .const import (
     DOMAIN,
@@ -18,6 +19,8 @@ from .const import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+_STORAGE_KEY = f"{DOMAIN}.cache"
+_STORAGE_VERSION = 1
 
 # Sofascore blocks default aiohttp UA – use a browser-like one
 _HEADERS = {
@@ -38,9 +41,10 @@ class AllsvenskanCoordinator(DataUpdateCoordinator):
             update_interval=timedelta(seconds=DEFAULT_SCAN_INTERVAL),
         )
         self.session = async_get_clientsession(hass)
+        self._store = Store(hass, _STORAGE_VERSION, _STORAGE_KEY)
 
     async def _async_update_data(self):
-        """Fetch standings from Sofascore."""
+        """Fetch standings from Sofascore, falling back to cached data on failure."""
         timeout = aiohttp.ClientTimeout(total=15)
 
         try:
@@ -71,7 +75,15 @@ class AllsvenskanCoordinator(DataUpdateCoordinator):
                     raise UpdateFailed(f"Standings endpoint returned HTTP {resp.status}")
                 standings_data = await resp.json()
 
-        except aiohttp.ClientError as err:
+        except (aiohttp.ClientError, UpdateFailed) as err:
+            # Return cached data so sensors stay available
+            cached = await self._store.async_load()
+            if cached:
+                _LOGGER.warning(
+                    "Sofascore fetch failed (%s). Using cached standings from last successful update.",
+                    err,
+                )
+                return cached
             raise UpdateFailed(f"Error communicating with Sofascore: {err}") from err
 
         standings = []
@@ -99,8 +111,12 @@ class AllsvenskanCoordinator(DataUpdateCoordinator):
                 )
             break  # only the first (total) group
 
-        return {
+        result = {
             "season": season_year,
             "season_id": season_id,
             "standings": standings,
         }
+
+        # Persist successful result for future fallback
+        await self._store.async_save(result)
+        return result
