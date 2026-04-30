@@ -90,12 +90,17 @@
   }
 }
 
-customElements.define("allsvenskan-card", AllsvenskanCard);
+if (!customElements.get("allsvenskan-card")) {
+  customElements.define("allsvenskan-card", AllsvenskanCard);
+  console.info("%c ALLSVENSKAN-CARD %c loaded", "color:white;background:#1a6b3a;font-weight:700;padding:2px 6px", "");
+}
 
 window.customCards = window.customCards || [];
-window.customCards.push({
-  type: "allsvenskan-card",
-  name: "Allsvenskan Tabell",
-  description: "Allsvenskan standings table with team logos.",
-  preview: false
-});
+if (!window.customCards.some(function(c) { return c.type === "allsvenskan-card"; })) {
+  window.customCards.push({
+    type: "allsvenskan-card",
+    name: "Allsvenskan Tabell",
+    description: "Allsvenskan standings table with team logos.",
+    preview: false
+  });
+}
