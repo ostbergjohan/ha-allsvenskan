@@ -4,6 +4,7 @@ from __future__ import annotations
 import logging
 import pathlib
 
+from homeassistant.components.frontend import add_extra_js_url
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
@@ -17,7 +18,6 @@ _LOGGER = logging.getLogger(__name__)
 PLATFORMS: list[Platform] = [Platform.SENSOR]
 
 _CARD_URL = f"/{DOMAIN}/allsvenskan-card.js"
-_CARD_RESOURCE_URL = f"{_CARD_URL}?v=1"
 
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
@@ -33,32 +33,6 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     return True
 
 
-async def _async_register_lovelace_resource(hass: HomeAssistant) -> None:
-    """Register the card as a Lovelace resource so it appears in the card picker."""
-    try:
-        from homeassistant.components.lovelace.resources import ResourceStorageCollection  # noqa: PLC0415
-
-        resources = hass.data.get("lovelace", {}).get("resources")
-        if resources is None:
-            return
-        if not resources.loaded:
-            await resources.async_load()
-            resources.loaded = True
-
-        for item in resources.async_items():
-            if item["url"].startswith(_CARD_URL):
-                return  # already registered
-
-        if getattr(resources, "async_create_item", None):
-            await resources.async_create_item(
-                {"res_type": "module", "url": _CARD_RESOURCE_URL}
-            )
-            _LOGGER.info("Allsvenskan card registered as Lovelace resource")
-    except Exception as err:  # noqa: BLE001
-        _LOGGER.warning("Could not register Lovelace resource: %s", err)
-
-
-
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Allsvenskan from a config entry."""
     coordinator = AllsvenskanCoordinator(hass)
@@ -68,7 +42,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
-    await _async_register_lovelace_resource(hass)
+    # Register card as extra module — frontend is guaranteed to be set up here
+    try:
+        add_extra_js_url(hass, _CARD_URL)
+        _LOGGER.debug("Allsvenskan card registered as extra module: %s", _CARD_URL)
+    except Exception as err:  # noqa: BLE001
+        _LOGGER.warning("Could not register Allsvenskan card as extra module: %s", err)
 
     return True
 
