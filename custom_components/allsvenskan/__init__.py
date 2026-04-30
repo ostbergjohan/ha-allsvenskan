@@ -21,7 +21,14 @@ _CARD_URL = f"/{DOMAIN}/allsvenskan-card.js"
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     """Register static path for the Lovelace card."""
     www_path = pathlib.Path(__file__).parent / "www" / "allsvenskan-card.js"
-    hass.http.register_static_path(_CARD_URL, str(www_path), cache_headers=False)
+    try:
+        hass.http.register_static_path(_CARD_URL, str(www_path), cache_headers=False)
+    except TypeError:
+        # Newer HA versions dropped the cache_headers parameter
+        try:
+            hass.http.register_static_path(_CARD_URL, str(www_path))
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.warning("Could not register static path for card: %s", err)
     _LOGGER.info(
         "Allsvenskan card available at %s. "
         "Add it manually in Settings → Dashboards → Resources if needed.",
