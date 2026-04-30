@@ -1,12 +1,12 @@
 {
+  "domain": "allsvenskan",
+  "name": "Allsvenskan",
   "codeowners": ["@ostbergjohan"],
   "config_flow": true,
   "dependencies": ["frontend", "http"],
   "documentation": "https://github.com/ostbergjohan/ha-allsvenskan",
-  "domain": "allsvenskan",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/ostbergjohan/ha-allsvenskan/issues",
-  "name": "Allsvenskan",
   "requirements": [],
   "version": "1.3.0"
 }
