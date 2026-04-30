@@ -20,21 +20,43 @@ PLATFORMS: list[Platform] = [Platform.SENSOR]
 _CARD_URL = f"/{DOMAIN}/allsvenskan-card.js"
 
 
-async def async_setup(hass: HomeAssistant, config: dict) -> bool:
-    """Serve the Lovelace card JS as a static file and register it with the frontend."""
-    base = pathlib.Path(__file__).parent
-    paths = [
-        StaticPathConfig(_CARD_URL, str(base / "www" / "allsvenskan-card.js"), False),
-    ]
+async def _register_lovelace_resource(hass: HomeAssistant, url: str) -> None:
+    """Register the card JS as a Lovelace resource using HA's internal resource collection."""
     try:
-        await hass.http.async_register_static_paths(paths)
-        _LOGGER.debug("Allsvenskan static paths registered: %s", _CARD_URL)
-    except Exception as err:  # noqa: BLE001
-        _LOGGER.warning("Could not register Allsvenskan static paths: %s", err)
+        resources = hass.data["lovelace"]["resources"]
+    except KeyError:
+        _LOGGER.warning("Allsvenskan: lovelace resources not available yet, skipping resource registration")
+        return
 
-    # Inject the card JS on every frontend page load (survives restarts)
+    # Ensure the collection is loaded
+    if not resources.loaded:
+        await resources.async_load()
+        resources.loaded = True
+
+    # Check if already registered
+    for item in resources.async_items():
+        if item.get("url", "").startswith(url):
+            _LOGGER.debug("Allsvenskan: Lovelace resource already registered")
+            return
+
+    # Register it
+    await resources.async_create_item({"res_type": "module", "url": url})
+    _LOGGER.info("Allsvenskan: registered Lovelace resource %s", url)
+
+
+async def async_setup(hass: HomeAssistant, config: dict) -> bool:
+    """Serve the Lovelace card JS as a static file."""
+    base = pathlib.Path(__file__).parent
+    try:
+        await hass.http.async_register_static_paths(
+            [StaticPathConfig(_CARD_URL, str(base / "www" / "allsvenskan-card.js"), False)]
+        )
+        _LOGGER.debug("Allsvenskan: static path registered %s", _CARD_URL)
+    except Exception as err:  # noqa: BLE001
+        _LOGGER.warning("Allsvenskan: could not register static path: %s", err)
+
+    # add_extra_js_url injects the JS on every page load (works if called before frontend loads)
     add_extra_js_url(hass, _CARD_URL)
-    _LOGGER.debug("Allsvenskan: registered extra JS URL %s", _CARD_URL)
     return True
 
 
@@ -49,6 +71,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+
+    # Register via Lovelace resource storage (visible under Settings → Dashboards → Resources)
+    await _register_lovelace_resource(hass, _CARD_URL)
 
     return True
 
