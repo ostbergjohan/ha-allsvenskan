@@ -18,8 +18,10 @@
       return;
     }
     const standings = stateObj.attributes.standings || [];
+    const maxRows = this.config && this.config.max_rows;
+    const limited = maxRows ? standings.slice(0, maxRows) : standings;
     const season = stateObj.attributes.season || "";
-    this._render(standings, season);
+    this._render(limited, season);
   }
 
   _init() {
@@ -39,6 +41,8 @@
       "tbody tr.eu{border-left:3px solid #F57F17}",
       "tbody tr.rp{border-left:3px solid #E65100}",
       "tbody tr.re{border-left:3px solid #B71C1C}",
+      "tbody tr.fav{background:#FFF9C4}",
+      "tbody tr.fav:hover{background:#FFF176}",
       "td{padding:7px 8px;text-align:center;vertical-align:middle}",
       "td.tc{text-align:left;padding-left:10px;display:flex;align-items:center;gap:8px}",
       "td.tc img{width:22px;height:22px;object-fit:contain;flex-shrink:0}",
@@ -56,6 +60,7 @@
   }
 
   _render(standings, season) {
+    var fav = (this.config && this.config.favorite_team || "").toLowerCase();
     var rows = standings.map(function(t) {
       var gd = t.goal_difference || 0;
       var gdStr = gd > 0 ? "+" + gd : "" + gd;
@@ -67,10 +72,13 @@
         if (pos >= 15) return "re";
         return "";
       })(t.position);
+      var isFav = fav && ((t.team || "").toLowerCase().indexOf(fav) !== -1
+        || (t.team_short || "").toLowerCase().indexOf(fav) !== -1
+        || fav.indexOf((t.team || "").toLowerCase()) !== -1);
       var logo = t.team_logo
         ? '<img src="' + t.team_logo + '" loading="lazy" onerror="this.style.display=\'none\'">'
         : '';
-      return '<tr class="' + zone + '">'
+      return '<tr class="' + zone + (isFav ? ' fav' : '') + '">'
         + '<td class="pos">' + (t.position || "") + '</td>'
         + '<td class="tc">' + logo + '<span title="' + (t.team || "") + '">' + (t.team_short || t.team || "") + '</span></td>'
         + '<td>' + (t.played_games != null ? t.played_games : "") + '</td>'

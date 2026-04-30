@@ -45,7 +45,7 @@ Add the card to your dashboard via **Edit Dashboard → Add Card → Custom: All
 type: custom:allsvenskan-card
 entity: sensor.allsvenskan_tabell  # optional, this is the default
 max_rows: 6                         # optional, default shows all 16 teams
-favorite_team: Malmö FF             # optional, highlights the matching row in yellow
+favorite_team: Hammarby IF          # optional, highlights the matching row in yellow
 ```
 
 ### Zone highlighting
@@ -75,10 +75,10 @@ Represents the **full standings table**.
 ```json
 {
   "position": 1,
-  "team": "Malmö FF",
-  "team_short": "MFF",
-  "team_id": 3629,
-  "team_logo": "https://api.sofascore.com/api/v1/team/3629/image",
+  "team": "Hammarby IF",
+  "team_short": "HIF",
+  "team_id": 3211,
+  "team_logo": "https://api.sofascore.com/api/v1/team/3211/image",
   "played_games": 10,
   "won": 7,
   "draw": 2,
@@ -94,7 +94,7 @@ Represents the **full standings table**.
 
 ### `sensor.allsvenskan_<team_name>`
 
-One sensor per team, e.g. `sensor.allsvenskan_malmo_ff`.
+One sensor per team, e.g. `sensor.allsvenskan_hammarby_if`.
 
 | | |
 |---|---|
