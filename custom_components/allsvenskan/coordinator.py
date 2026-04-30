@@ -79,8 +79,8 @@ class AllsvenskanCoordinator(DataUpdateCoordinator):
         for group in standings_data.get("standings", []):
             for row in group.get("rows", []):
                 team = row.get("team", {})
-                    team_id = team.get("id")
-                    standings.append(
+                team_id = team.get("id")
+                standings.append(
                     {
                         "position": row.get("position"),
                         "team": team.get("name"),
