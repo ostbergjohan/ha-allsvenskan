@@ -3,13 +3,12 @@ from __future__ import annotations
 
 import logging
 import pathlib
-import uuid
 
+from homeassistant.components.frontend import add_extra_js_url
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.storage import Store
 
 from .const import DOMAIN
 from .coordinator import AllsvenskanCoordinator
@@ -21,21 +20,8 @@ PLATFORMS: list[Platform] = [Platform.SENSOR]
 _CARD_URL = f"/{DOMAIN}/allsvenskan-card.js"
 
 
-async def _ensure_lovelace_resource(hass: HomeAssistant, url: str) -> None:
-    """Persist card in Lovelace resources storage (survives restarts)."""
-    store = Store(hass, 1, "lovelace.resources")
-    data = await store.async_load() or {"items": []}
-    items = data.setdefault("items", [])
-    if any(item.get("url") == url for item in items):
-        _LOGGER.debug("Allsvenskan: Lovelace resource already registered")
-        return
-    items.append({"id": uuid.uuid4().hex, "res_type": "module", "url": url})
-    await store.async_save(data)
-    _LOGGER.info("Allsvenskan: registered Lovelace resource %s", url)
-
-
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
-    """Serve the Lovelace card JS as a static file."""
+    """Serve the Lovelace card JS as a static file and register it with the frontend."""
     base = pathlib.Path(__file__).parent
     paths = [
         StaticPathConfig(_CARD_URL, str(base / "www" / "allsvenskan-card.js"), False),
@@ -45,6 +31,10 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
         _LOGGER.debug("Allsvenskan static paths registered: %s", _CARD_URL)
     except Exception as err:  # noqa: BLE001
         _LOGGER.warning("Could not register Allsvenskan static paths: %s", err)
+
+    # Inject the card JS on every frontend page load (survives restarts)
+    add_extra_js_url(hass, _CARD_URL)
+    _LOGGER.debug("Allsvenskan: registered extra JS URL %s", _CARD_URL)
     return True
 
 
@@ -59,11 +49,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-
-    try:
-        await _ensure_lovelace_resource(hass, _CARD_URL)
-    except Exception as err:  # noqa: BLE001
-        _LOGGER.warning("Allsvenskan: could not register Lovelace resource: %s", err)
 
     return True
 
