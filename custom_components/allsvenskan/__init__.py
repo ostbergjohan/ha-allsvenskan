@@ -23,8 +23,8 @@ _CARD_URL = f"/{DOMAIN}/allsvenskan-card.js"
 async def _register_lovelace_resource(hass: HomeAssistant, url: str) -> None:
     """Register the card JS as a Lovelace resource using HA's internal resource collection."""
     try:
-        resources = hass.data["lovelace"]["resources"]
-    except KeyError:
+        resources = hass.data["lovelace"].resources
+    except (KeyError, AttributeError):
         _LOGGER.warning("Allsvenskan: lovelace resources not available yet, skipping resource registration")
         return
 
