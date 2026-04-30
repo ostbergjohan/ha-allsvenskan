@@ -1,37 +1,37 @@
 # Allsvenskan – Home Assistant Integration
 
-![version](https://img.shields.io/badge/version-1.0.7-blue) ![hacs](https://img.shields.io/badge/HACS-Custom-orange)
+![version](https://img.shields.io/badge/version-1.1.2-blue) ![hacs](https://img.shields.io/badge/HACS-Custom-orange)
 
-Home Assistant-integration som visar aktuell ligatabell för **Allsvenskan** med laglogotyper, poäng, mål och zonmarkering direkt i ditt dashboard. Data hämtas från [Sofascore](https://www.sofascore.com/) – ingen API-nyckel krävs.
+Home Assistant integration that displays the current **Allsvenskan** standings table with team logos, points, goals and zone highlighting directly in your dashboard. Data is fetched from [Sofascore](https://www.sofascore.com/) — no API key required.
 
 ---
 
-## Funktioner
+## Features
 
-- 📋 Inbyggt **Lovelace-kort** med laglogotyper och färgkodade zoner
-- 📡 Sensor med **hela ligatabellen** som attribut (`sensor.allsvenskan_tabell`)
-- ⚽ En sensor **per lag** med aktuell tabellplats och detaljstatistik
-- 🔄 Uppdateras automatiskt var **60:e minut**
-- 🔑 Ingen API-nyckel krävs
+- 📋 Built-in **Lovelace card** with team logos and color-coded zones
+- 📡 Sensor with the **full standings table** as attributes (`sensor.allsvenskan_tabell`)
+- ⚽ One sensor **per team** with current position and detailed statistics
+- 🔄 Automatically updated every **60 minutes**
+- 🔑 No API key required
 
 ---
 
 ## Installation via HACS
 
-1. Gå till **HACS → Integrationer → ⋮ → Anpassade arkiv**
-2. Lägg till `https://github.com/ostbergjohan/ha-allsvenskan` som **Integration**
-3. Sök efter **Allsvenskan** och klicka **Ladda ned**
-4. **Starta om Home Assistant**
-5. Gå till **Inställningar → Enheter & tjänster → Lägg till integration → Allsvenskan**
-6. Klicka **Skicka** – ingen konfiguration behövs
+1. Go to **HACS → Integrations → ⋮ → Custom repositories**
+2. Add `https://github.com/ostbergjohan/ha-allsvenskan` as **Integration**
+3. Search for **Allsvenskan** and click **Download**
+4. **Restart Home Assistant**
+5. Go to **Settings → Devices & Services → Add Integration → Allsvenskan**
+6. Click **Submit** — no configuration needed
 
-Lovelace-kortet registreras och laddas automatiskt – ingen manuell resurskonfiguration behövs.
+The Lovelace card is registered and loaded automatically — no manual resource configuration required.
 
 ---
 
-## Lovelace-kort
+## Lovelace Card
 
-Lägg till kortet på din dashboard via **Redigera dashboard → Lägg till kort → Anpassat: Allsvenskan Tabell**, eller manuellt:
+Add the card to your dashboard via **Edit Dashboard → Add Card → Custom: Allsvenskan Tabell**, or manually:
 
 ```yaml
 type: custom:allsvenskan-card
@@ -40,29 +40,29 @@ max_rows: 6                         # optional, default shows all 16 teams
 favorite_team: Malmö FF             # optional, highlights the matching row in yellow
 ```
 
-### Zonmarkering
+### Zone highlighting
 
-| Färg | Zon |
+| Color | Zone |
 |---|---|
-| 🔵 Blå | Champions League-kval (plats 1) |
-| 🟠 Orange | Europa-kval (plats 2–3) |
-| 🟤 Brun | Kvalserie nedflyttning (plats 14) |
-| 🔴 Röd | Direkt nedflyttning (plats 15–16) |
+| 🔵 Blue | Champions League qualification (position 1) |
+| 🟠 Orange | European qualification (positions 2–3) |
+| 🟤 Brown | Relegation playoff (position 14) |
+| 🔴 Red | Direct relegation (positions 15–16) |
 
 ---
 
-## Sensorer
+## Sensors
 
 ### `sensor.allsvenskan_tabell`
 
-Representerar **hela ligatabellen**.
+Represents the **full standings table**.
 
 | | |
 |---|---|
-| **State** | Ligaledarens namn |
-| **Attribut** | `season`, `standings` |
+| **State** | Name of the current league leader |
+| **Attributes** | `season`, `standings` |
 
-`standings` är en lista med ett objekt per lag:
+`standings` is a list with one object per team:
 
 ```json
 {
@@ -84,24 +84,24 @@ Representerar **hela ligatabellen**.
 
 ---
 
-### `sensor.allsvenskan_<lagnamn>`
+### `sensor.allsvenskan_<team_name>`
 
-En sensor per lag, t.ex. `sensor.allsvenskan_malmo_ff`.
+One sensor per team, e.g. `sensor.allsvenskan_malmo_ff`.
 
 | | |
 |---|---|
-| **State** | Tabellplacering (heltal) |
-| **Enhet** | `pos` |
-| **Attribut** | `team`, `points`, `played`, `won`, `draw`, `lost`, `goals_for`, `goals_against`, `goal_difference`, `crest` |
+| **State** | Table position (integer) |
+| **Unit** | `pos` |
+| **Attributes** | `team`, `points`, `played`, `won`, `draw`, `lost`, `goals_for`, `goals_against`, `goal_difference`, `crest` |
 
 ---
 
-## Datakälla
+## Data Source
 
-Data hämtas från [Sofascore API](https://www.sofascore.com/) (Allsvenskan, unik turnerings-id 40). Ingen registrering eller API-nyckel krävs. Uppdatering sker var 60:e minut.
+Data is fetched from the [Sofascore API](https://www.sofascore.com/) (Allsvenskan, unique tournament id 40). No account or API key required. Updates every 60 minutes.
 
 ---
 
-## Licens
+## License
 
-MIT – se [LICENSE](LICENSE) för detaljer.
+MIT – see [LICENSE](LICENSE) for details.
