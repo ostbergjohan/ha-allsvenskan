@@ -81,6 +81,14 @@ class AllsvenskanCard extends HTMLElement {
       tbody tr.promotion-euro { border-left: 3px solid #F57F17; }
       tbody tr.relegation-playoff { border-left: 3px solid #E65100; }
       tbody tr.relegation { border-left: 3px solid #B71C1C; }
+      tbody tr.favorite {
+        background: #fffde7;
+        font-weight: 600;
+      }
+      tbody tr.favorite td.team-col .team-name {
+        font-weight: 700;
+      }
+      tbody tr.favorite:hover { background: #fff9c4; }
       td {
         padding: 7px 8px;
         text-align: center;
@@ -137,17 +145,19 @@ class AllsvenskanCard extends HTMLElement {
   }
 
   _render(standings, season) {
+    const favorite = (this.config.favorite_team || "").toLowerCase();
     const rows = standings.map((t) => {
       const gd = t.goal_difference;
       const gdFormatted = gd > 0 ? `+${gd}` : `${gd}`;
       const gdClass = gd > 0 ? "pos-val" : gd < 0 ? "neg-val" : "";
       const zone = this._zoneClass(t.position);
+      const isFav = favorite && (t.team || "").toLowerCase().includes(favorite);
       const logo = t.team_logo
         ? `<img src="${t.team_logo}" alt="${t.team_short || t.team}" loading="lazy" onerror="this.style.display='none'">`
         : `<img style="display:none">`;
 
       return `
-        <tr class="${zone}">
+        <tr class="${zone}${isFav ? " favorite" : ""}">
           <td class="pos">${t.position}</td>
           <td class="team-col">
             ${logo}
