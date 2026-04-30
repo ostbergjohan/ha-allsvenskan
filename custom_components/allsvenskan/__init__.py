@@ -3,13 +3,11 @@ from __future__ import annotations
 
 import logging
 import pathlib
-import uuid
 
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.storage import Store
 
 from .const import DOMAIN
 from .coordinator import AllsvenskanCoordinator
@@ -19,19 +17,6 @@ _LOGGER = logging.getLogger(__name__)
 PLATFORMS: list[Platform] = [Platform.SENSOR]
 
 _CARD_URL = f"/{DOMAIN}/allsvenskan-card.js"
-_LOVELACE_RESOURCES_KEY = "lovelace_resources"
-
-
-async def _ensure_lovelace_resource(hass: HomeAssistant, url: str) -> None:
-    """Add the card URL to Lovelace resources storage if not already present."""
-    store = Store(hass, 1, _LOVELACE_RESOURCES_KEY)
-    data = await store.async_load() or {"items": []}
-    items = data.setdefault("items", [])
-    if any(item.get("url") == url for item in items):
-        return
-    items.append({"id": uuid.uuid4().hex, "type": "module", "url": url})
-    await store.async_save(data)
-    _LOGGER.debug("Allsvenskan: added Lovelace resource %s", url)
 
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
@@ -43,7 +28,7 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     ]
     try:
         await hass.http.async_register_static_paths(paths)
-        _LOGGER.debug("Allsvenskan static paths registered")
+        _LOGGER.debug("Allsvenskan static paths registered: %s", _CARD_URL)
     except Exception as err:  # noqa: BLE001
         _LOGGER.warning("Could not register Allsvenskan static paths: %s", err)
     return True
@@ -60,13 +45,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-
-    # Persist card in Lovelace resources so it survives restarts
-    try:
-        await _ensure_lovelace_resource(hass, _CARD_URL)
-    except Exception as err:  # noqa: BLE001
-        _LOGGER.warning("Could not register Allsvenskan Lovelace resource: %s", err)
-
     return True
 
 

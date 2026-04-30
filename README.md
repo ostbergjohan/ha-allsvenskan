@@ -27,7 +27,13 @@ Home Assistant integration that displays the current **Allsvenskan** standings t
 5. Go to **Settings → Devices & Services → Add Integration → Allsvenskan**
 6. Click **Submit** — no configuration needed
 
-The Lovelace card is registered and loaded automatically — no manual resource configuration required.
+After restart, **add the card resource once**:
+
+7. Go to **Settings → Dashboards → ⋮ (top right) → Resources**
+8. Click **Add Resource**
+9. URL: `/allsvenskan/allsvenskan-card.js`
+10. Type: **JavaScript Module**
+11. Click **Create** — then hard-refresh your browser (Ctrl+Shift+R)
 
 ---
 
