@@ -20,24 +20,31 @@ CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 PLATFORMS: list[Platform] = [Platform.SENSOR]
 
 _CARD_URL = f"/{DOMAIN}/allsvenskan-card.js"
-_CARD_VERSION = "3"  # bump this to bust browser cache after updates
+_TEAM_CARD_URL = f"/{DOMAIN}/allsvenskan-team-card.js"
+_CARD_VERSION = "4"  # bump this to bust browser cache after updates
 
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     """Serve the card JS as a static file and inject it via add_extra_js_url."""
-    js_path = str(pathlib.Path(__file__).parent / "www" / "allsvenskan-card.js")
+    www_dir = pathlib.Path(__file__).parent / "www"
+    js_path = str(www_dir / "allsvenskan-card.js")
+    team_js_path = str(www_dir / "allsvenskan-team-card.js")
 
-    # Register static path – try modern API first, fall back to legacy
+    # Register static paths – try modern API first, fall back to legacy
     try:
         from homeassistant.components.http import StaticPathConfig
 
         await hass.http.async_register_static_paths(
-            [StaticPathConfig(_CARD_URL, js_path, False)]
+            [
+                StaticPathConfig(_CARD_URL, js_path, False),
+                StaticPathConfig(_TEAM_CARD_URL, team_js_path, False),
+            ]
         )
     except (ImportError, AttributeError):
         # Older HA versions without StaticPathConfig / async_register_static_paths
         try:
             hass.http.register_static_path(_CARD_URL, js_path, False)
+            hass.http.register_static_path(_TEAM_CARD_URL, team_js_path, False)
         except Exception as err:  # noqa: BLE001
             _LOGGER.error("Allsvenskan: could not register static path: %s", err)
             return True
@@ -45,10 +52,11 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
         _LOGGER.error("Allsvenskan: could not register static path: %s", err)
         return True
 
-    # Single injection point – loads JS as a module on every page
-    url = f"{_CARD_URL}?v={_CARD_VERSION}"
-    add_extra_js_url(hass, url)
-    _LOGGER.info("Allsvenskan: card JS registered at %s", url)
+    # Inject both card JS files
+    for card_url in (_CARD_URL, _TEAM_CARD_URL):
+        url = f"{card_url}?v={_CARD_VERSION}"
+        add_extra_js_url(hass, url)
+        _LOGGER.info("Allsvenskan: card JS registered at %s", url)
     return True
 
 
