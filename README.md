@@ -1,5 +1,9 @@
 # Allsvenskan – Home Assistant Integration
 
+<p align="center">
+  <img src="images/ha-allsvenskan.png" width="200" alt="Allsvenskan logo">
+</p>
+
 ![version](https://img.shields.io/badge/version-1.1.2-blue) ![hacs](https://img.shields.io/badge/HACS-Custom-orange)
 
 Home Assistant integration that displays the current **Allsvenskan** standings table with team logos, points, goals and zone highlighting directly in your dashboard. Data is fetched from [Sofascore](https://www.sofascore.com/) — no API key required.
