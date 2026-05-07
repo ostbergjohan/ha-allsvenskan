@@ -1,7 +1,7 @@
 # Allsvenskan – Home Assistant Integration
 
 <p align="center">
-  <img src="images/ha-allsvenskan.png" width="200" alt="Allsvenskan logo">
+  <img src="images/ha-allsvenskan.png" width="400" alt="Allsvenskan logo">
 </p>
 
 ![version](https://img.shields.io/badge/version-1.1.2-blue) ![hacs](https://img.shields.io/badge/HACS-Custom-orange)
