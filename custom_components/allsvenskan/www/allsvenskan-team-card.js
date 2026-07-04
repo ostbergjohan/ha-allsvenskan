@@ -59,6 +59,33 @@ var TEAM_CARD_STYLES = [
   ".form-bar .l{background:#ef5350}",
 ].join("");
 
+function _escapeHtml(value) {
+  var str = String(value == null ? "" : value);
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function _escapeAttr(value) {
+  return _escapeHtml(value);
+}
+
+function _safeImageUrl(value) {
+  if (!value) return "";
+  try {
+    var url = new URL(String(value), window.location.origin);
+    if (url.protocol === "http:" || url.protocol === "https:") {
+      return url.href;
+    }
+  } catch (e) {
+    return "";
+  }
+  return "";
+}
+
 
 /* ── Position suffix helper ────────────────────────────────────── */
 function _posSuffix(pos) {
@@ -103,7 +130,7 @@ class AllsvenskanTeamCard extends HTMLElement {
     var stateObj = hass.states[entity];
     if (!stateObj) {
       this._content.innerHTML =
-        '<p style="color:red;padding:12px">Entity <b>' + entity + "</b> not found.</p>";
+        '<p style="color:red;padding:12px">Entity <b>' + _escapeHtml(entity) + "</b> not found.</p>";
       return;
     }
     this._renderCard(stateObj);
@@ -140,18 +167,19 @@ class AllsvenskanTeamCard extends HTMLElement {
     var html = "";
 
     /* ── Row 1: Hero ──────────────────────────── */
-    var imgTag = crest
-      ? '<img src="' + crest + "\" alt=\"\" loading=\"lazy\" onerror=\"this.style.display='none'\">"
+    var safeCrest = _safeImageUrl(crest);
+    var imgTag = safeCrest
+      ? '<img src="' + _escapeAttr(safeCrest) + '" alt="" loading="lazy">'
       : "";
     var posNum = parseInt(position, 10);
     var posBadge = !isNaN(posNum)
-      ? '<div class="position-badge"><span>' + posNum + "</span>" + _posSuffix(posNum) + "</div>"
+      ? '<div class="position-badge"><span>' + _escapeHtml(posNum) + "</span>" + _escapeHtml(_posSuffix(posNum)) + "</div>"
       : "";
     html +=
       '<div class="hero">' +
         imgTag +
         '<div class="hero-text">' +
-          '<div class="team-name">' + teamName + "</div>" +
+          '<div class="team-name">' + _escapeHtml(teamName) + "</div>" +
           '<div class="subtitle">Allsvenskan</div>' +
         "</div>" +
         posBadge +
@@ -163,8 +191,8 @@ class AllsvenskanTeamCard extends HTMLElement {
       var playedStr = played != null ? played : "–";
       html +=
         '<div class="points-bar">' +
-          '<span class="pts">' + ptsStr + "</span> poäng" +
-          " &nbsp;·&nbsp; " + playedStr + " spelade" +
+          '<span class="pts">' + _escapeHtml(ptsStr) + "</span> poäng" +
+          " &nbsp;·&nbsp; " + _escapeHtml(playedStr) + " spelade" +
         "</div>";
     }
 
@@ -172,9 +200,9 @@ class AllsvenskanTeamCard extends HTMLElement {
     if (rows >= 3) {
       html +=
         '<div class="stats">' +
-          '<div class="stat won"><div class="val">' + (won != null ? won : "–") + '</div><div class="lbl">Vinster</div></div>' +
-          '<div class="stat draw"><div class="val">' + (draw != null ? draw : "–") + '</div><div class="lbl">Oavgjort</div></div>' +
-          '<div class="stat lost"><div class="val">' + (lost != null ? lost : "–") + '</div><div class="lbl">Förluster</div></div>' +
+          '<div class="stat won"><div class="val">' + _escapeHtml(won != null ? won : "–") + '</div><div class="lbl">Vinster</div></div>' +
+          '<div class="stat draw"><div class="val">' + _escapeHtml(draw != null ? draw : "–") + '</div><div class="lbl">Oavgjort</div></div>' +
+          '<div class="stat lost"><div class="val">' + _escapeHtml(lost != null ? lost : "–") + '</div><div class="lbl">Förluster</div></div>' +
         "</div>";
     }
 
@@ -186,10 +214,10 @@ class AllsvenskanTeamCard extends HTMLElement {
 
       html +=
         '<div class="goals">' +
-          '<div class="g-block"><div class="val">' + (goalsFor != null ? goalsFor : "–") + '</div><div class="lbl">Gjorda</div></div>' +
+          '<div class="g-block"><div class="val">' + _escapeHtml(goalsFor != null ? goalsFor : "–") + '</div><div class="lbl">Gjorda</div></div>' +
           '<div class="divider">–</div>' +
-          '<div class="g-block"><div class="val">' + (goalsAgainst != null ? goalsAgainst : "–") + '</div><div class="lbl">Insläppta</div></div>' +
-          '<div class="gd"><div class="val ' + gdCls + '">' + gdStr + '</div><div class="lbl">Målskillnad</div></div>' +
+          '<div class="g-block"><div class="val">' + _escapeHtml(goalsAgainst != null ? goalsAgainst : "–") + '</div><div class="lbl">Insläppta</div></div>' +
+          '<div class="gd"><div class="val ' + _escapeAttr(gdCls) + '">' + _escapeHtml(gdStr) + '</div><div class="lbl">Målskillnad</div></div>' +
         "</div>";
 
       // Form bar – visual ratio of W/D/L
@@ -261,7 +289,7 @@ class AllsvenskanTeamCardEditor extends HTMLElement {
       var eid = teamEntities[i];
       var friendly = this._hass.states[eid].attributes.friendly_name || eid;
       var sel = eid === currentEntity ? " selected" : "";
-      html += '<option value="' + eid + '"' + sel + ">" + friendly + "</option>";
+      html += '<option value="' + _escapeAttr(eid) + '"' + sel + ">" + _escapeHtml(friendly) + "</option>";
     }
     html += "</select></div>";
 

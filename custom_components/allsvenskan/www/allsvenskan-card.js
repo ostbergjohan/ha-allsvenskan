@@ -11,7 +11,7 @@ var ALLSVENSKAN_COLUMNS = [
     header: "#",
     thCls: "",
     cell: function (t) {
-      return '<td class="pos">' + (t.position || "") + "</td>";
+      return '<td class="pos">' + _escapeHtml(t.position || "") + "</td>";
     },
   },
   {
@@ -19,14 +19,15 @@ var ALLSVENSKAN_COLUMNS = [
     header: "Lag",
     thCls: "tc",
     cell: function (t) {
-      var logo = t.team_logo
-        ? '<img src="' + t.team_logo + "\" loading=\"lazy\" onerror=\"this.style.display='none'\">"
+      var logoUrl = _safeImageUrl(t.team_logo);
+      var logo = logoUrl
+        ? '<img src="' + _escapeAttr(logoUrl) + '" loading="lazy">'
         : "";
       return (
         '<td class="tc">' +
         logo +
-        '<span title="' + (t.team || "") + '">' +
-        (t.team_short || t.team || "") +
+        '<span title="' + _escapeAttr(t.team || "") + '">' +
+        _escapeHtml(t.team_short || t.team || "") +
         "</span></td>"
       );
     },
@@ -36,7 +37,7 @@ var ALLSVENSKAN_COLUMNS = [
     header: "S",
     thCls: "",
     cell: function (t) {
-      return "<td>" + (t.played_games != null ? t.played_games : "") + "</td>";
+      return "<td>" + _escapeHtml(t.played_games != null ? t.played_games : "") + "</td>";
     },
   },
   {
@@ -44,7 +45,7 @@ var ALLSVENSKAN_COLUMNS = [
     header: "V",
     thCls: "",
     cell: function (t) {
-      return "<td>" + (t.won != null ? t.won : "") + "</td>";
+      return "<td>" + _escapeHtml(t.won != null ? t.won : "") + "</td>";
     },
   },
   {
@@ -52,7 +53,7 @@ var ALLSVENSKAN_COLUMNS = [
     header: "O",
     thCls: "",
     cell: function (t) {
-      return "<td>" + (t.draw != null ? t.draw : "") + "</td>";
+      return "<td>" + _escapeHtml(t.draw != null ? t.draw : "") + "</td>";
     },
   },
   {
@@ -60,7 +61,7 @@ var ALLSVENSKAN_COLUMNS = [
     header: "F",
     thCls: "",
     cell: function (t) {
-      return "<td>" + (t.lost != null ? t.lost : "") + "</td>";
+      return "<td>" + _escapeHtml(t.lost != null ? t.lost : "") + "</td>";
     },
   },
   {
@@ -70,9 +71,9 @@ var ALLSVENSKAN_COLUMNS = [
     cell: function (t) {
       return (
         "<td>" +
-        (t.goals_for != null ? t.goals_for : "") +
+        _escapeHtml(t.goals_for != null ? t.goals_for : "") +
         "-" +
-        (t.goals_against != null ? t.goals_against : "") +
+        _escapeHtml(t.goals_against != null ? t.goals_against : "") +
         "</td>"
       );
     },
@@ -85,7 +86,7 @@ var ALLSVENSKAN_COLUMNS = [
       var gd = t.goal_difference || 0;
       var gdStr = gd > 0 ? "+" + gd : "" + gd;
       var gdCls = gd > 0 ? "p" : gd < 0 ? "n" : "";
-      return '<td class="gd ' + gdCls + '">' + gdStr + "</td>";
+      return '<td class="gd ' + gdCls + '">' + _escapeHtml(gdStr) + "</td>";
     },
   },
   {
@@ -93,10 +94,37 @@ var ALLSVENSKAN_COLUMNS = [
     header: "P",
     thCls: "",
     cell: function (t) {
-      return '<td class="pts">' + (t.points != null ? t.points : "") + "</td>";
+      return '<td class="pts">' + _escapeHtml(t.points != null ? t.points : "") + "</td>";
     },
   },
 ];
+
+function _escapeHtml(value) {
+  var str = String(value == null ? "" : value);
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function _escapeAttr(value) {
+  return _escapeHtml(value);
+}
+
+function _safeImageUrl(value) {
+  if (!value) return "";
+  try {
+    var url = new URL(String(value), window.location.origin);
+    if (url.protocol === "http:" || url.protocol === "https:") {
+      return url.href;
+    }
+  } catch (e) {
+    return "";
+  }
+  return "";
+}
 
 var ALL_COLUMN_KEYS = ALLSVENSKAN_COLUMNS.map(function (c) {
   return c.key;
@@ -150,7 +178,7 @@ class AllsvenskanCard extends HTMLElement {
     var stateObj = hass.states[entity];
     if (!stateObj) {
       this._content.innerHTML =
-        '<p style="color:red;padding:12px">Entity ' + entity + " not found.</p>";
+        '<p style="color:red;padding:12px">Entity ' + _escapeHtml(entity) + " not found.</p>";
       return;
     }
     var standings = stateObj.attributes.standings || [];
@@ -232,7 +260,7 @@ class AllsvenskanCard extends HTMLElement {
 
     this._content.innerHTML =
       '<div class="header">Allsvenskan ' +
-      season +
+      _escapeHtml(season) +
       "</div>" +
       "<table><thead><tr>" +
       ths +
@@ -275,18 +303,18 @@ class AllsvenskanCardEditor extends HTMLElement {
       + '</style>';
 
     html += '<div class="row"><label>Entity</label>'
-      + '<input type="text" id="entity" value="' + (cfg.entity || "sensor.allsvenskan_tabell") + '"></div>';
+      + '<input type="text" id="entity" value="' + _escapeAttr(cfg.entity || "sensor.allsvenskan_tabell") + '"></div>';
     html += '<div class="row"><label>Favorite team</label>'
-      + '<input type="text" id="fav" value="' + (cfg.favorite_team || "") + '"></div>';
+      + '<input type="text" id="fav" value="' + _escapeAttr(cfg.favorite_team || "") + '"></div>';
     html += '<div class="row"><label>Max rows</label>'
-      + '<input type="number" id="maxrows" min="0" value="' + (cfg.max_rows || "") + '" placeholder="all"></div>';
+      + '<input type="number" id="maxrows" min="0" value="' + _escapeAttr(cfg.max_rows || "") + '" placeholder="all"></div>';
 
     html += '<div class="col-section"><h3>Columns (click to toggle, default = all)</h3><div class="col-grid">';
     for (var i = 0; i < ALLSVENSKAN_COLUMNS.length; i++) {
       var c = ALLSVENSKAN_COLUMNS[i];
       var isActive = active.indexOf(c.key) !== -1;
       html += '<div class="col-chip' + (isActive ? ' active' : '') + '" data-key="' + c.key + '">'
-        + c.header + ' <small>(' + c.key + ')</small></div>';
+        + _escapeHtml(c.header) + ' <small>(' + _escapeHtml(c.key) + ')</small></div>';
     }
     html += '</div></div>';
 
