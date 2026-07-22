@@ -115,8 +115,13 @@ function _escapeAttr(value) {
 
 function _safeImageUrl(value) {
   if (!value) return "";
+  var str = String(value);
+  // Allow server-proxied base64 data URLs (image types only – no HTML/JS)
+  if (/^data:image\/[a-zA-Z0-9.+-]+;base64,[A-Za-z0-9+/=]+$/.test(str)) {
+    return str;
+  }
   try {
-    var url = new URL(String(value), window.location.origin);
+    var url = new URL(str, window.location.origin);
     if (url.protocol === "http:" || url.protocol === "https:") {
       return url.href;
     }

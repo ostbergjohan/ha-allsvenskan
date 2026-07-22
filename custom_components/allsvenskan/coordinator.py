@@ -1,6 +1,8 @@
 """Data coordinator for Allsvenskan integration."""
 from __future__ import annotations
 
+import asyncio
+import base64
 import logging
 from datetime import timedelta
 
@@ -28,6 +30,12 @@ _HEADERS = {
     "Accept": "application/json",
 }
 
+_IMAGE_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+    "Accept": "image/png,image/svg+xml,image/*,*/*",
+    "Referer": "https://www.sofascore.com/",
+}
+
 
 class AllsvenskanCoordinator(DataUpdateCoordinator):
     """Coordinator that fetches Allsvenskan standings from Sofascore."""
@@ -42,6 +50,39 @@ class AllsvenskanCoordinator(DataUpdateCoordinator):
         )
         self.session = async_get_clientsession(hass)
         self._store = Store(hass, _STORAGE_VERSION, _STORAGE_KEY)
+        # In-memory logo cache: team_id (int) → base64 data URL string.
+        # Populated from the persistent store on first successful standings fetch
+        # and refreshed whenever new team IDs are seen.
+        self._logo_cache: dict[int, str] = {}
+
+    async def _fetch_logo(self, team_id: int) -> str | None:
+        """Fetch a team logo from Sofascore and return it as a base64 data URL.
+
+        Results are kept in *_logo_cache* so each team is fetched at most once
+        per HA process lifetime.  Failures are silently ignored (returns None).
+        """
+        if team_id in self._logo_cache:
+            return self._logo_cache[team_id]
+        url = f"https://api.sofascore.com/api/v1/team/{team_id}/image"
+        timeout = aiohttp.ClientTimeout(total=10)
+        try:
+            async with self.session.get(
+                url, headers=_IMAGE_HEADERS, timeout=timeout
+            ) as resp:
+                if resp.status != 200:
+                    _LOGGER.debug("Logo fetch for team %s returned HTTP %s", team_id, resp.status)
+                    return None
+                content_type = resp.headers.get("Content-Type", "image/png")
+                # Strip charset / boundary directives
+                if ";" in content_type:
+                    content_type = content_type.split(";")[0].strip()
+                data = await resp.read()
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.debug("Logo fetch for team %s failed: %s", team_id, err)
+            return None
+        data_url = "data:" + content_type + ";base64," + base64.b64encode(data).decode("ascii")
+        self._logo_cache[team_id] = data_url
+        return data_url
 
     async def _async_update_data(self):
         """Fetch standings from Sofascore, falling back to cached data on failure."""
@@ -83,6 +124,12 @@ class AllsvenskanCoordinator(DataUpdateCoordinator):
                     "Sofascore fetch failed (%s). Using cached standings from last successful update.",
                     err,
                 )
+                # Restore logo cache so team sensors still show crests
+                for row in cached.get("standings", []):
+                    tid = row.get("team_id")
+                    logo = row.get("team_logo", "")
+                    if tid and logo.startswith("data:"):
+                        self._logo_cache[tid] = logo
                 return cached
             raise UpdateFailed(f"Error communicating with Sofascore: {err}") from err
 
@@ -98,7 +145,7 @@ class AllsvenskanCoordinator(DataUpdateCoordinator):
                         "team": team.get("name"),
                         "team_short": team.get("shortName"),
                         "team_id": team_id,
-                        "team_logo": f"https://api.sofascore.com/api/v1/team/{team_id}/image" if team_id else None,
+                        "team_logo": None,  # filled in below after logo fetch
                         "played_games": row.get("matches"),
                         "won": row.get("wins"),
                         "draw": row.get("draws"),
@@ -111,12 +158,28 @@ class AllsvenskanCoordinator(DataUpdateCoordinator):
                 )
             break  # only the first (total) group
 
+        # Fetch logos as base64 data URLs so they are CSP-safe and not subject
+        # to Sofascore hotlink protection when rendered in the browser.
+        team_ids = [r["team_id"] for r in standings if r.get("team_id")]
+        logo_results = await asyncio.gather(
+            *[self._fetch_logo(tid) for tid in team_ids],
+        )
+        logo_map: dict[int, str] = {
+            tid: url
+            for tid, url in zip(team_ids, logo_results)
+            if url is not None
+        }
+        for row in standings:
+            tid = row.get("team_id")
+            if tid:
+                row["team_logo"] = logo_map.get(tid)
+
         result = {
             "season": season_year,
             "season_id": season_id,
             "standings": standings,
         }
 
-        # Persist successful result for future fallback
+        # Persist successful result (including base64 logos) for future fallback
         await self._store.async_save(result)
         return result
