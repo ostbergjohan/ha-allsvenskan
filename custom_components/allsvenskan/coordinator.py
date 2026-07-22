@@ -36,6 +36,12 @@ _IMAGE_HEADERS = {
     "Referer": "https://www.sofascore.com/",
 }
 
+_LOGO_HOSTS = (
+    "api.sofascore.com",
+    "www.sofascore.com",
+    "img.sofascore.com",
+)
+
 
 class AllsvenskanCoordinator(DataUpdateCoordinator):
     """Coordinator that fetches Allsvenskan standings from Sofascore."""
@@ -63,26 +69,49 @@ class AllsvenskanCoordinator(DataUpdateCoordinator):
         """
         if team_id in self._logo_cache:
             return self._logo_cache[team_id]
-        url = f"https://api.sofascore.com/api/v1/team/{team_id}/image"
         timeout = aiohttp.ClientTimeout(total=10)
-        try:
-            async with self.session.get(
-                url, headers=_IMAGE_HEADERS, timeout=timeout
-            ) as resp:
-                if resp.status != 200:
-                    _LOGGER.debug("Logo fetch for team %s returned HTTP %s", team_id, resp.status)
-                    return None
-                content_type = resp.headers.get("Content-Type", "image/png")
-                # Strip charset / boundary directives
-                if ";" in content_type:
-                    content_type = content_type.split(";")[0].strip()
-                data = await resp.read()
-        except Exception as err:  # noqa: BLE001
-            _LOGGER.debug("Logo fetch for team %s failed: %s", team_id, err)
-            return None
-        data_url = "data:" + content_type + ";base64," + base64.b64encode(data).decode("ascii")
-        self._logo_cache[team_id] = data_url
-        return data_url
+        for host in _LOGO_HOSTS:
+            url = f"https://{host}/api/v1/team/{team_id}/image"
+            try:
+                async with self.session.get(
+                    url, headers=_IMAGE_HEADERS, timeout=timeout
+                ) as resp:
+                    if resp.status != 200:
+                        _LOGGER.debug(
+                            "Logo fetch for team %s via %s returned HTTP %s",
+                            team_id,
+                            host,
+                            resp.status,
+                        )
+                        continue
+                    content_type = resp.headers.get("Content-Type", "image/png")
+                    # Ignore challenge pages served as HTML.
+                    if not content_type.lower().startswith("image/"):
+                        _LOGGER.debug(
+                            "Logo fetch for team %s via %s returned non-image content type: %s",
+                            team_id,
+                            host,
+                            content_type,
+                        )
+                        continue
+                    # Strip charset / boundary directives
+                    if ";" in content_type:
+                        content_type = content_type.split(";")[0].strip()
+                    data = await resp.read()
+            except Exception as err:  # noqa: BLE001
+                _LOGGER.debug("Logo fetch for team %s via %s failed: %s", team_id, host, err)
+                continue
+
+            data_url = "data:" + content_type + ";base64," + base64.b64encode(data).decode("ascii")
+            self._logo_cache[team_id] = data_url
+            return data_url
+
+        return None
+
+    @staticmethod
+    def _fallback_logo_url(team_id: int) -> str:
+        """Return a direct URL fallback for environments where base64 fetch fails."""
+        return f"https://img.sofascore.com/api/v1/team/{team_id}/image"
 
     async def _async_update_data(self):
         """Fetch standings from Sofascore, falling back to cached data on failure."""
@@ -172,7 +201,7 @@ class AllsvenskanCoordinator(DataUpdateCoordinator):
         for row in standings:
             tid = row.get("team_id")
             if tid:
-                row["team_logo"] = logo_map.get(tid)
+                row["team_logo"] = logo_map.get(tid) or self._fallback_logo_url(tid)
 
         result = {
             "season": season_year,
