@@ -158,7 +158,7 @@ class AllsvenskanTeamCard extends HTMLElement {
     var rows = Math.min(4, Math.max(1, parseInt(this.config.rows, 10) || 4));
 
     var teamName = a.team || stateObj.attributes.friendly_name || "";
-    var crest = a.crest || "";
+    var crest = _safeImageUrl((this.config && this.config.logo) || "") || a.crest || "";
     var position = stateObj.state;
     var points = a.points;
     var played = a.played;
@@ -298,6 +298,10 @@ class AllsvenskanTeamCardEditor extends HTMLElement {
     }
     html += "</select></div>";
 
+    /* Custom logo URL */
+    html += '<div class="row"><label>Logo URL</label>'
+      + '<input type="text" id="logo" style="flex:1;padding:6px 8px;border:1px solid #ccc;border-radius:4px" value="' + _escapeAttr(cfg.logo || "") + '" placeholder="https://… (overrides sensor crest)"></div>';
+
     /* Rows selector */
     html += '<div class="row"><label>Rader</label><select id="rows">';
     var rowLabels = [
@@ -319,6 +323,9 @@ class AllsvenskanTeamCardEditor extends HTMLElement {
     var self = this;
     this.shadowRoot.getElementById("entity").addEventListener("change", function (e) {
       self._update("entity", e.target.value);
+    });
+    this.shadowRoot.getElementById("logo").addEventListener("change", function (e) {
+      self._update("logo", e.target.value);
     });
     this.shadowRoot.getElementById("rows").addEventListener("change", function (e) {
       self._update("rows", parseInt(e.target.value, 10));

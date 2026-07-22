@@ -231,6 +231,7 @@ class AllsvenskanCard extends HTMLElement {
   _render(standings, season) {
     var cols = _resolveColumns(this.config);
     var fav = ((this.config && this.config.favorite_team) || "").toLowerCase();
+    var favLogo = _safeImageUrl((this.config && this.config.fav_logo) || "");
 
     // Build header
     var ths = cols
@@ -254,9 +255,14 @@ class AllsvenskanCard extends HTMLElement {
           ((t.team || "").toLowerCase().indexOf(fav) !== -1 ||
             (t.team_short || "").toLowerCase().indexOf(fav) !== -1 ||
             fav.indexOf((t.team || "").toLowerCase()) !== -1);
+        // Apply custom logo override for favourite team row
+        var tRow = t;
+        if (isFav && favLogo) {
+          tRow = Object.assign({}, t, { team_logo: favLogo });
+        }
         var tds = cols
           .map(function (c) {
-            return c.cell(t);
+            return c.cell(tRow);
           })
           .join("");
         return '<tr class="' + zone + (isFav ? " fav" : "") + '">' + tds + "</tr>";
@@ -311,6 +317,8 @@ class AllsvenskanCardEditor extends HTMLElement {
       + '<input type="text" id="entity" value="' + _escapeAttr(cfg.entity || "sensor.allsvenskan_tabell") + '"></div>';
     html += '<div class="row"><label>Favorite team</label>'
       + '<input type="text" id="fav" value="' + _escapeAttr(cfg.favorite_team || "") + '"></div>';
+    html += '<div class="row"><label>Fav logo URL</label>'
+      + '<input type="text" id="favlogo" value="' + _escapeAttr(cfg.fav_logo || "") + '" placeholder="https://…"></div>';
     html += '<div class="row"><label>Max rows</label>'
       + '<input type="number" id="maxrows" min="0" value="' + _escapeAttr(cfg.max_rows || "") + '" placeholder="all"></div>';
 
@@ -332,6 +340,9 @@ class AllsvenskanCardEditor extends HTMLElement {
     });
     this.shadowRoot.getElementById("fav").addEventListener("change", function (e) {
       self._update("favorite_team", e.target.value);
+    });
+    this.shadowRoot.getElementById("favlogo").addEventListener("change", function (e) {
+      self._update("fav_logo", e.target.value);
     });
     this.shadowRoot.getElementById("maxrows").addEventListener("change", function (e) {
       var v = parseInt(e.target.value, 10);
