@@ -4,7 +4,7 @@ from __future__ import annotations
 import asyncio
 import base64
 import logging
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 
 import aiohttp
 
@@ -41,6 +41,7 @@ _LOGO_HOSTS = (
     "www.sofascore.com",
     "img.sofascore.com",
 )
+_LOGO_RETRY_COOLDOWN = timedelta(hours=5)
 
 
 class AllsvenskanCoordinator(DataUpdateCoordinator):
@@ -60,6 +61,8 @@ class AllsvenskanCoordinator(DataUpdateCoordinator):
         # Populated from the persistent store on first successful standings fetch
         # and refreshed whenever new team IDs are seen.
         self._logo_cache: dict[int, str] = {}
+        # When logo fetch fails/challenges, wait before trying again per team.
+        self._logo_retry_after: dict[int, datetime] = {}
 
     async def _fetch_logo(self, team_id: int) -> str | None:
         """Fetch a team logo from Sofascore and return it as a base64 data URL.
@@ -69,6 +72,10 @@ class AllsvenskanCoordinator(DataUpdateCoordinator):
         """
         if team_id in self._logo_cache:
             return self._logo_cache[team_id]
+        now = datetime.now(timezone.utc)
+        retry_after = self._logo_retry_after.get(team_id)
+        if retry_after and now < retry_after:
+            return None
         timeout = aiohttp.ClientTimeout(total=10)
         for host in _LOGO_HOSTS:
             url = f"https://{host}/api/v1/team/{team_id}/image"
@@ -104,14 +111,37 @@ class AllsvenskanCoordinator(DataUpdateCoordinator):
 
             data_url = "data:" + content_type + ";base64," + base64.b64encode(data).decode("ascii")
             self._logo_cache[team_id] = data_url
+            self._logo_retry_after.pop(team_id, None)
             return data_url
 
+        self._logo_retry_after[team_id] = now + _LOGO_RETRY_COOLDOWN
         return None
 
     @staticmethod
     def _fallback_logo_url(team_id: int) -> str:
         """Return a direct URL fallback for environments where base64 fetch fails."""
         return f"https://img.sofascore.com/api/v1/team/{team_id}/image"
+
+    @staticmethod
+    def _generated_logo_data_url(
+        team_name: str | None,
+        team_short: str | None,
+        primary_color: str | None,
+        text_color: str | None,
+    ) -> str:
+        """Generate a simple SVG badge so cards always have a local image fallback."""
+        label_src = (team_short or team_name or "?").strip()
+        initials = "".join(ch for ch in label_src if ch.isalnum())[:3].upper() or "?"
+        bg = primary_color or "#1f6f43"
+        fg = text_color or "#ffffff"
+        svg = (
+            "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 72 72'>"
+            f"<rect width='72' height='72' rx='14' fill='{bg}'/>"
+            f"<text x='36' y='46' text-anchor='middle' font-size='24' "
+            f"font-family='Arial, sans-serif' font-weight='700' fill='{fg}'>{initials}</text>"
+            "</svg>"
+        )
+        return "data:image/svg+xml;base64," + base64.b64encode(svg.encode("utf-8")).decode("ascii")
 
     async def _async_update_data(self):
         """Fetch standings from Sofascore, falling back to cached data on failure."""
@@ -173,6 +203,8 @@ class AllsvenskanCoordinator(DataUpdateCoordinator):
                         "position": row.get("position"),
                         "team": team.get("name"),
                         "team_short": team.get("shortName"),
+                        "team_primary_color": team.get("teamColors", {}).get("primary"),
+                        "team_text_color": team.get("teamColors", {}).get("text"),
                         "team_id": team_id,
                         "team_logo": None,  # filled in below after logo fetch
                         "played_games": row.get("matches"),
@@ -201,7 +233,16 @@ class AllsvenskanCoordinator(DataUpdateCoordinator):
         for row in standings:
             tid = row.get("team_id")
             if tid:
-                row["team_logo"] = logo_map.get(tid) or self._fallback_logo_url(tid)
+                row["team_logo"] = (
+                    logo_map.get(tid)
+                    or self._generated_logo_data_url(
+                        row.get("team"),
+                        row.get("team_short"),
+                        row.get("team_primary_color"),
+                        row.get("team_text_color"),
+                    )
+                    or self._fallback_logo_url(tid)
+                )
 
         result = {
             "season": season_year,
