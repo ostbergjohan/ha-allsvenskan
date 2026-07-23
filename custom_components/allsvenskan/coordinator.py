@@ -117,6 +117,7 @@ class AllsvenskanCoordinator(DataUpdateCoordinator):
         self._logo_retry_after[team_id] = now + _LOGO_RETRY_COOLDOWN
         return None
 
+    async def _async_update_data(self):
         """Fetch standings from Sofascore, falling back to cached data on failure."""
         timeout = aiohttp.ClientTimeout(total=15)
 
