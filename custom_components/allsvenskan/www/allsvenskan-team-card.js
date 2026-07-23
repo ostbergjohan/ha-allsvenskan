@@ -174,7 +174,7 @@ class AllsvenskanTeamCard extends HTMLElement {
     /* ── Row 1: Hero ──────────────────────────── */
     var safeCrest = _safeImageUrl(crest);
     var imgTag = safeCrest
-      ? '<img src="' + _escapeAttr(safeCrest) + '" alt="" loading="lazy">'
+      ? '<img src="' + _escapeAttr(safeCrest) + '" alt="" loading="lazy" referrerpolicy="no-referrer">'
       : "";
     var posNum = parseInt(position, 10);
     var posBadge = !isNaN(posNum)

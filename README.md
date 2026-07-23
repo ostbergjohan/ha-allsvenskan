@@ -48,6 +48,7 @@ type: custom:allsvenskan-card
 entity: sensor.allsvenskan_tabell  # optional, this is the default
 max_rows: 6                         # optional, default shows all 16 teams
 favorite_team: Hammarby IF          # optional, highlights the matching row in yellow
+show_logos: false                   # optional, hide team logo images in the table
 fav_logo: https://example.com/hammarby.png  # optional, custom logo for the favourite row
 ```
 
@@ -56,6 +57,7 @@ fav_logo: https://example.com/hammarby.png  # optional, custom logo for the favo
 | `entity` | `sensor.allsvenskan_tabell` | The standings sensor |
 | `max_rows` | all | Limit number of rows shown |
 | `favorite_team` | — | Partial team name match, highlighted in yellow |
+| `show_logos` | `true` | Set to `false` to hide team logo images in the table while keeping the team text column visible |
 | `fav_logo` | — | Image URL used as the logo for the favourite team row. Useful when Sofascore logos are blocked on your network. |
 | `columns` | all | List of column keys to show: `position`, `team`, `played`, `won`, `draw`, `lost`, `goals`, `goal_difference`, `points` |
 
@@ -93,7 +95,7 @@ logo: https://example.com/hammarby.png  # optional, overrides the sensor crest
 
 Logos are fetched **server-side** by Home Assistant and embedded as base64 data — they are not loaded directly by the browser, so no hotlinking issues arise. If Sofascore's image endpoint is unreachable from your Home Assistant network (e.g. a firewall challenge), the logo area is simply left blank. The integration retries automatically every 5 hours.
 
-To always display a logo you control, use the `fav_logo` option (table card) or `logo` option (team card) and point them to any publicly accessible image URL.
+To always display a logo you control, use the `fav_logo` option (table card) or `logo` option (team card) and point them to any publicly accessible image URL. If you prefer a cleaner text-only table, set `show_logos: false` on the table card.
 
 ---
 

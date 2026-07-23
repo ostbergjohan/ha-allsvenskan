@@ -18,10 +18,12 @@ var ALLSVENSKAN_COLUMNS = [
     key: "team",
     header: "Lag",
     thCls: "tc",
-    cell: function (t) {
-      var logoUrl = _safeImageUrl(t.team_logo);
+    cell: function (t, options) {
+      options = options || {};
+      var showLogos = options.showLogos !== false;
+      var logoUrl = showLogos ? _safeImageUrl(t.team_logo) : "";
       var logo = logoUrl
-        ? '<img src="' + _escapeAttr(logoUrl) + '" loading="lazy">'
+        ? '<img src="' + _escapeAttr(logoUrl) + '" loading="lazy" referrerpolicy="no-referrer">'
         : "";
       return (
         '<td class="tc">' +
@@ -232,6 +234,7 @@ class AllsvenskanCard extends HTMLElement {
     var cols = _resolveColumns(this.config);
     var fav = ((this.config && this.config.favorite_team) || "").toLowerCase();
     var favLogo = _safeImageUrl((this.config && this.config.fav_logo) || "");
+    var showLogos = this.config && this.config.show_logos !== false && this.config.show_images !== false;
 
     // Build header
     var ths = cols
@@ -262,7 +265,7 @@ class AllsvenskanCard extends HTMLElement {
         }
         var tds = cols
           .map(function (c) {
-            return c.cell(tRow);
+            return c.cell(tRow, { showLogos: showLogos });
           })
           .join("");
         return '<tr class="' + zone + (isFav ? " fav" : "") + '">' + tds + "</tr>";
@@ -317,6 +320,8 @@ class AllsvenskanCardEditor extends HTMLElement {
       + '<input type="text" id="entity" value="' + _escapeAttr(cfg.entity || "sensor.allsvenskan_tabell") + '"></div>';
     html += '<div class="row"><label>Favorite team</label>'
       + '<input type="text" id="fav" value="' + _escapeAttr(cfg.favorite_team || "") + '"></div>';
+    html += '<div class="row"><label>Show logos</label>'
+      + '<input type="checkbox" id="showlogos" ' + ((cfg.show_logos !== false && cfg.show_images !== false) ? "checked" : "") + '></div>';
     html += '<div class="row"><label>Fav logo URL</label>'
       + '<input type="text" id="favlogo" value="' + _escapeAttr(cfg.fav_logo || "") + '" placeholder="https://…"></div>';
     html += '<div class="row"><label>Max rows</label>'
@@ -340,6 +345,9 @@ class AllsvenskanCardEditor extends HTMLElement {
     });
     this.shadowRoot.getElementById("fav").addEventListener("change", function (e) {
       self._update("favorite_team", e.target.value);
+    });
+    this.shadowRoot.getElementById("showlogos").addEventListener("change", function (e) {
+      self._update("show_logos", e.target.checked);
     });
     this.shadowRoot.getElementById("favlogo").addEventListener("change", function (e) {
       self._update("fav_logo", e.target.value);
