@@ -42,6 +42,7 @@ _LOGO_HOSTS = (
     "img.sofascore.com",
 )
 _LOGO_RETRY_COOLDOWN = timedelta(hours=5)
+_CACHE_STALE_THRESHOLD = timedelta(days=7)
 
 
 class AllsvenskanCoordinator(DataUpdateCoordinator):
@@ -153,10 +154,31 @@ class AllsvenskanCoordinator(DataUpdateCoordinator):
             # Return cached data so sensors stay available
             cached = await self._store.async_load()
             if cached:
-                _LOGGER.warning(
-                    "Sofascore fetch failed (%s). Using cached standings from last successful update.",
-                    err,
-                )
+                cached_at = cached.get("cached_at")
+                cached_at_dt = None
+                if isinstance(cached_at, str):
+                    try:
+                        cached_at_dt = datetime.fromisoformat(cached_at)
+                    except ValueError:
+                        cached_at_dt = None
+
+                if cached_at_dt and datetime.now(timezone.utc) - cached_at_dt > _CACHE_STALE_THRESHOLD:
+                    raise UpdateFailed(
+                        f"Cached standings are too old ({cached_at_dt.isoformat()}) and fresh data could not be fetched: {err}"
+                    ) from err
+
+                if cached_at_dt:
+                    _LOGGER.warning(
+                        "Sofascore fetch failed (%s). Using cached standings from last successful update at %s.",
+                        err,
+                        cached_at_dt.isoformat(),
+                    )
+                else:
+                    _LOGGER.warning(
+                        "Sofascore fetch failed (%s). Using cached standings from last successful update.",
+                        err,
+                    )
+
                 # Restore logo cache so team sensors still show crests
                 for row in cached.get("standings", []):
                     tid = row.get("team_id")
@@ -213,6 +235,7 @@ class AllsvenskanCoordinator(DataUpdateCoordinator):
             "season": season_year,
             "season_id": season_id,
             "standings": standings,
+            "cached_at": datetime.now(timezone.utc).isoformat(),
         }
 
         # Persist successful result (including base64 logos) for future fallback
