@@ -66,6 +66,8 @@ class AllsvenskanTableSensor(CoordinatorEntity, SensorEntity):
         return {
             "season": self.coordinator.data.get("season"),
             "standings": self.coordinator.data.get("standings", []),
+            "standings_updated_at": self.coordinator.data.get("standings_updated_at"),
+            "data_cached_at": self.coordinator.data.get("cached_at"),
         }
 
 
@@ -114,7 +116,7 @@ class AllsvenskanTeamSensor(CoordinatorEntity, SensorEntity):
         row = self._get_team_row()
         if not row:
             return {}
-        return {
+        attrs = {
             "team": row.get("team"),
             "points": row.get("points"),
             "played": row.get("played_games"),
@@ -126,3 +128,7 @@ class AllsvenskanTeamSensor(CoordinatorEntity, SensorEntity):
             "goal_difference": row.get("goal_difference"),
             "crest": row.get("team_logo"),
         }
+        if self.coordinator.data:
+            attrs["standings_updated_at"] = self.coordinator.data.get("standings_updated_at")
+            attrs["data_cached_at"] = self.coordinator.data.get("cached_at")
+        return attrs

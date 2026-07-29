@@ -231,10 +231,23 @@ class AllsvenskanCoordinator(DataUpdateCoordinator):
             if tid:
                 row["team_logo"] = logo_map.get(tid) or None
 
+        standings_updated_at = None
+        standings_group = standings_data.get("standings", [])
+        if standings_group:
+            updated_ts = standings_group[0].get("updatedAtTimestamp")
+            if isinstance(updated_ts, (int, float)):
+                try:
+                    standings_updated_at = datetime.fromtimestamp(
+                        int(updated_ts), timezone.utc
+                    ).isoformat()
+                except Exception:
+                    standings_updated_at = None
+
         result = {
             "season": season_year,
             "season_id": season_id,
             "standings": standings,
+            "standings_updated_at": standings_updated_at,
             "cached_at": datetime.now(timezone.utc).isoformat(),
         }
 
